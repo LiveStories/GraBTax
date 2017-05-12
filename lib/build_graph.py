@@ -291,7 +291,7 @@ def recursive_partition(g, taxonomy_out, query_topic, k=4):
         x = metis.networkx_to_metis(g_sub)
         (edgecuts, parts) = metis.part_graph(x, k)
 
-        for part in range(k):
+        for part in range(1, k+1):
             max_degree = 0
             max_node = None
             for node in [g_sub.nodes()[i] for i, j in enumerate(parts) if j == part]:
@@ -305,6 +305,8 @@ def recursive_partition(g, taxonomy_out, query_topic, k=4):
                     taxonomy_out, max_node)
                 taxonomy_out.add_node(max_node, weight=g_sub.node[max_node]["weight"])
                 taxonomy_out.add_edge(query_topic, max_node)
+    elif len(g_sub) > 0:
+        taxonomy_out.add_edge(g_sub.nodes()[0], query_topic)
 
     return taxonomy_out, query_topic
 
@@ -312,7 +314,7 @@ if __name__ == "__main__":
     with open("topic_words.tsv", "r") as infile:
         reader = csv.reader(infile, delimiter="\t")
         topic_words = {int(rows[0]): rows[1] for rows in reader}
-    if True:
+    if False:
         with open("study_theta_matrix.pkl", "rb") as f:
             foo = pickle.load(f)
         g = build_graph(foo, topic_words, "indicator_topics")
