@@ -283,7 +283,7 @@ def recursive_partition(g, taxonomy_out, query_topic, k=4):
     :param k: partition size for graph bisection
     :return: taxonomy graph (taxonomy_out)
     """
-    from lib.subgraph import get_subgraph
+    from GraBTax.subgraph import get_subgraph
 
     taxonomy_out.add_node(query_topic, weight=g.node[query_topic]["weight"])
     g_sub = get_subgraph(g, query_topic)

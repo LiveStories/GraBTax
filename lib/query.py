@@ -20,7 +20,7 @@ from hermes.TopicModelling import LDA
 from pithos.Utils import stringutils
 from pithos.Utils.timer import Timer
 import os
-import lib.build_graph as graph
+import GraBTax.build_graph as graph
 import csv
 
 es = Elasticsearch()

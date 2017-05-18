@@ -1,4 +1,4 @@
-from lib.build_graph import get_rank
+from GraBTax.build_graph import get_rank
 import networkx as nt
 import numpy
 
