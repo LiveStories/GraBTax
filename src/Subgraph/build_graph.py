@@ -210,23 +210,23 @@ def get_conditional_topic_prob(i, j, g):
     return count_i_given_j / topic_j_s
 
 
-def save(name, g):
+def save(path, g):
     """
     saves a graph in graphml format
     :param name: friendly name of the graph
     :param g: the graph to save
     :return: None
     """
-    write_graphml(g, "graphs//" + name + ".graphml")
+    write_graphml(g, path)
 
 
-def load(name):
+def load(path):
     """
     loads a previously-saved graph from graphml format using its friendly name.
     :param name: the friendly name of the graph
     :return: the loaded graph
     """
-    g = read_graphml("graphs//" + name + ".graphml", node_type=int)
+    g = read_graphml(path, node_type=int)
     return g
 
 

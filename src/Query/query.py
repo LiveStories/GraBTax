@@ -1,33 +1,37 @@
-import getopt
-import json
-import logging
-import pickle
-import sys
-from distutils.util import strtobool
-from multiprocessing import Pool
-import boto3
+# import getopt
+# import json
+# import logging
+# import pickle
+# import sys
+# from distutils.util import strtobool
+# from multiprocessing import Pool
+# import boto3
 from hermes.Search.IndicatorSearch.Queries.predict_keywords import predict_keywords
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 from networkx import Graph, bfs_successors, bfs_tree
-import networkx as nt
-from networkx.readwrite import json_graph
-from requests_aws4auth import AWS4Auth
-from hermes.Config.configmap import ConfigMap
-from hermes.Config import shared_objects
-from hermes.Search.IndicatorSearch.Queries.indicator_candidate import IndicatorCandidate, IndicatorResult
+# import networkx as nt
+# from networkx.readwrite import json_graph
+# from requests_aws4auth import AWS4Auth
+from hermes.Config import configmap
+# from hermes.Config import shared_objects
+# from hermes.Search.IndicatorSearch.Queries.indicator_candidate import IndicatorCandidate, IndicatorResult
 from hermes.Search.SearchProcessing import process
 from hermes.TopicModelling import LDA
 from pithos.Utils import stringutils
-from pithos.Utils.timer import Timer
+# from pithos.Utils.timer import Timer
 import os
 import GraBTax.Subgraph.build_graph as graph
 import csv
 
+
+config = configmap.ConfigMap()
+model_path = config.section_map("Models")["model_path"]
 es = Elasticsearch()
 
-with open("topic_words.tsv", "r") as infile:
-    reader = csv.reader(infile, delimiter="\t")
-    topic_words = {int(rows[0]): rows[1] for rows in reader}
+
+with open(os.path.join(model_path, "category_guesses_cleaned.csv"), "r") as infile:
+    reader = csv.reader(infile, delimiter=",")
+    topic_words = {int(rows[0]): rows[2] for rows in reader}
 
 def get_topic_clause(topics):
     clauses = []
@@ -97,7 +101,7 @@ def query(query_text):
 
     taxonomy = Graph()
     results_lda, synonyms, keywords = process.process_text(" ".join(tokenized_sentences), )
-    g = graph.load("indicator_topics")
+    g = graph.load(os.path.join(model_path, "indicator_topics.graphml"))
 
     taxonomy.add_node("query", label=query_text)
     for (topic, weight) in results_lda[2]:
@@ -115,4 +119,5 @@ def query(query_text):
 
 
 if __name__ == "__main__":
-    query("health")
+    test = query("health")
+    pass
