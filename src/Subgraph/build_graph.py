@@ -11,6 +11,8 @@ import pickle
 import csv
 import metis
 import networkx
+import os
+from hermes.Config import configmap
 from networkx.drawing import draw_spectral
 __author__ = "Rob McDaniel <robmcdan@gmail.com>"
 __copyright__ = """
@@ -36,7 +38,8 @@ __email__ = "robmcdan@gmail.com"
 __status__ = "Development"
 
 logging.basicConfig(level=logging.DEBUG)
-
+config = configmap.ConfigMap()
+model_path = config.section_map("Models")["model_path"]
 
 def make_boolean_topic_matrix(doc_topic_matrix, threshold=0.15):
     """
@@ -139,11 +142,10 @@ def update_edge_weights(g):
     logging.debug(num_topics)
     for i in range(num_topics):
         logging.debug(i)
-        topic_i = g.node[i]["weight"]
-        colocations = [key for key in g.edge[i].keys()]
+        collocations = [key for key in g.edge[i].keys()]
         lambda1 = 1
         lambda2 = 1
-        for j in colocations:
+        for j in collocations:
             rank_ij = get_rank(i, j, g)
             rank_ji = get_rank(j, i, g)
             rank = 1 if rank_ij == 1 or rank_ji == 1 else 0
@@ -260,17 +262,17 @@ def blacklisted_topics(g):
     :param g: graph to modify
     :return: modified graph
     """
-    g.remove_node(179)
-    g.remove_node(245)
-    g.remove_node(106)
-    g.remove_node(13)
-    g.remove_node(24)
+    # g.remove_node(179)
+    # g.remove_node(245)
+    # g.remove_node(106)
+    # g.remove_node(13)
+    # g.remove_node(24)
 #    g.remove_node(230)
-    g.remove_node(59)
-    g.remove_node(183)
-    g.remove_node(234)
-    g.remove_node(1)
-    g.remove_node(14)
+#     g.remove_node(59)
+#     g.remove_node(183)
+#     g.remove_node(234)
+#     g.remove_node(1)
+#     g.remove_node(14)
     return g
 
 
@@ -310,15 +312,16 @@ def recursive_partition(g, taxonomy_out, query_topic, k=4):
 
     return taxonomy_out, query_topic
 
+
 if __name__ == "__main__":
-    with open("topic_words.tsv", "r") as infile:
-        reader = csv.reader(infile, delimiter="\t")
-        topic_words = {int(rows[0]): rows[1] for rows in reader}
-    if False:
-        with open("study_theta_matrix.pkl", "rb") as f:
+    with open(os.path.join(model_path, "category_guesses_cleaned.csv"), "r") as infile:
+        reader = csv.reader(infile, delimiter=",")
+        topic_words = {int(rows[0]): rows[2] for rows in reader}
+    # if True:
+        with open(os.path.join(model_path, "study_theta_matrix.pkl"), "rb") as f:
             foo = pickle.load(f)
-        g = build_graph(foo, topic_words, "indicator_topics")
-    else:
+            g = build_graph(foo, topic_words, "indicator_topics")
+    # else:
         g = load("indicator_topics")
 
     t = Graph()
