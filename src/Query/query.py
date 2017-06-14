@@ -1,48 +1,50 @@
-# import getopt
-# import json
-# import logging
-# import pickle
-# import sys
-# from distutils.util import strtobool
-# from multiprocessing import Pool
-# import boto3
+
 from hermes.Search.IndicatorSearch.Queries.predict_keywords import predict_keywords
 from elasticsearch import Elasticsearch, RequestsHttpConnection
-from networkx import Graph, bfs_successors, bfs_tree
-# import networkx as nt
-# from networkx.readwrite import json_graph
-# from requests_aws4auth import AWS4Auth
+from networkx import Graph
 from hermes.Config import configmap
-# from hermes.Config import shared_objects
-# from hermes.Search.IndicatorSearch.Queries.indicator_candidate import IndicatorCandidate, IndicatorResult
 from hermes.Search.SearchProcessing import process
 from hermes.TopicModelling import LDA
 from pithos.Utils import stringutils
-# from pithos.Utils.timer import Timer
 import os
 import GraBTax.Subgraph.build_graph as graph
 import csv
+import boto3
+from requests_aws4auth import AWS4Auth
+from distutils.util import strtobool
 
 
+session = boto3.Session()
+credentials = session.get_credentials()
 config = configmap.ConfigMap()
 model_path = config.section_map("Models")["model_path"]
-es = Elasticsearch()
+environment = config.section_map("SearchSettings")["environment"]
+awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, "us-west-2", 'es', session_token=credentials.token)
+
+
+es = Elasticsearch(hosts=[{"host": config.section_map(environment)["host"],
+                           "port":int(config.section_map(environment)["port"])}],
+                   http_auth=awsauth, use_ssl=bool(strtobool(config.section_map(environment)["use_ssl"])),
+                   verify_certs=bool(strtobool(config.section_map(environment)["verify_certs"])),
+                   connection_class=RequestsHttpConnection)
 
 
 with open(os.path.join(model_path, "category_guesses_cleaned.csv"), "r") as infile:
     reader = csv.reader(infile, delimiter=",")
     topic_words = {int(rows[0]): rows[2] for rows in reader}
 
+
 def get_topic_clause(topics):
     clauses = []
     for topic in topics:
         clauses.append({
             "term": {
-                "topics": str(topic)
+                "topics": topic
             }
             }
         )
     return clauses
+
 
 def get_body(topics):
     json = {
@@ -61,7 +63,10 @@ def get_body(topics):
     return json
 
 
-def traverse_graph(g, head, topic_list=[]):
+def traverse_graph(g, head, topic_list=None):
+    if topic_list is None:
+        topic_list = []
+
     def check_topic(topic):
         if topic in g.edge["query"].keys():
             if topic not in topic_list:
@@ -75,21 +80,23 @@ def traverse_graph(g, head, topic_list=[]):
             topic_list = []
 
     for child in g.edge[head]:
-        if child != "query" and child != head and check_topic(child) and type(child) != str: # todo: better way of ignoring indicator vertex than ignoring str (we only want topic vertices)
+        # todo: better way of ignoring indicator vertex than ignoring str (we only want topic vertices)
+        if child != "query" and child != head and check_topic(child) and type(child) != str:
             topic_list.append(child)
-            results = search(topic_list)
+            results = search_indicators_by_topic(topic_list)
             print(child)
             for hit in results["hits"]["hits"]:
-                text = hit["_source"]["indicator_name"]
-                id = hit["_source"]["id"]
+                id_ = hit["_source"]["id"]
                 score = hit["_score"]
-                g.add_edge(child, id, weight=score)
+                g.add_edge(child, id_, weight=score)
             traverse_graph(g, child, topic_list)
     return g
 
-def search(topics):
+
+def search_indicators_by_topic(topics):
     results = es.search("liq_indicators_b", doc_type="indicator", body=get_body(topics))
     return results
+
 
 def query(query_text):
     tokenized_sentences = stringutils.tokenize(query_text)
@@ -112,12 +119,12 @@ def query(query_text):
             taxonomy.add_edge(topic, "query", weight=float(weight))
 
     # add indicators to vertices here. This isn't working.
-    #traverse_graph(taxonomy, "query")
+    # traverse_graph(taxonomy, "query")
 
     graph.save("query", taxonomy)
     return taxonomy
 
 
 if __name__ == "__main__":
-    test = query("health")
+    # test = query("health")
     pass
